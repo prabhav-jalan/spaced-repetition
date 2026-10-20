@@ -1,0 +1,25 @@
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+
+# Frontend
+node_modules/
+frontend/dist/
+backend/app/static/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
