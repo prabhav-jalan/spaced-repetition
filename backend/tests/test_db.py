@@ -1,15 +1,11 @@
-from pathlib import Path
-
 import pytest
 from alembic import command
-from alembic.config import Config
 from sqlalchemy import text
 
 from app.db import Base, get_session
+from tests.conftest import alembic_config
 
 pytestmark = pytest.mark.db
-
-ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 
 
 def test_database_answers(db_engine):
@@ -39,7 +35,7 @@ def test_get_session_yields_a_working_session(db_engine):
 
 
 def test_alembic_upgrades_to_head_and_models_match_migrations(db_engine):
-    config = Config(str(ALEMBIC_INI))
+    config = alembic_config()
 
     command.upgrade(config, "head")
     command.check(config)

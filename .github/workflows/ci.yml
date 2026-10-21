@@ -46,7 +46,9 @@ jobs:
       - name: Migrate
         run: alembic upgrade head
       - name: Test
-        run: pytest
+        run: pytest --cov
+      - name: srs.py line coverage is 100%
+        run: coverage report --include=app/srs.py --fail-under=100
 
   frontend:
     runs-on: ubuntu-latest

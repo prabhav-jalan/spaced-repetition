@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from datetime import datetime
 from functools import lru_cache
 from typing import Any
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import DateTime, MetaData, Text, create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -21,6 +22,7 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+    type_annotation_map = {str: Text(), datetime: DateTime(timezone=True)}
 
 
 def create_db_engine(url: str, **kwargs: Any) -> Engine:

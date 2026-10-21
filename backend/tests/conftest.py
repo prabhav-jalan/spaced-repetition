@@ -2,15 +2,21 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 import time_machine
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_engine, get_sessionmaker
+
+ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 
 # A Tuesday at noon UTC: 08:00 in New York (EDT), 17:30 in Kolkata.
 FROZEN_AT = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
@@ -67,3 +73,25 @@ def db_engine() -> Engine:
             pytrace=False,
         )
     return engine
+
+
+def alembic_config() -> Config:
+    return Config(str(ALEMBIC_INI))
+
+
+@pytest.fixture(scope="session")
+def migrated_engine(db_engine: Engine) -> Engine:
+    command.upgrade(alembic_config(), "head")
+    return db_engine
+
+
+@pytest.fixture
+def db(migrated_engine: Engine) -> Iterator[Session]:
+    with migrated_engine.connect() as connection:
+        transaction = connection.begin()
+        session = Session(bind=connection, join_transaction_mode="create_savepoint")
+        try:
+            yield session
+        finally:
+            session.close()
+            transaction.rollback()

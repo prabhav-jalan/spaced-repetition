@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8",
+    "pytest-cov>=6",
     "time-machine>=2.14",
     "httpx>=0.27",
     "ruff>=0.6",
@@ -48,3 +49,9 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "f
 testpaths = ["tests"]
 addopts = "-ra"
 markers = ["db: needs PostgreSQL at DATABASE_URL"]
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
