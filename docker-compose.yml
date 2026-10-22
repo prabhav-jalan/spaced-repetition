@@ -24,12 +24,14 @@ services:
       DATABASE_URL: postgresql+psycopg://app:app@db:5432/spaced_repetition
     command: >
       sh -c "alembic upgrade head &&
+             python -m app.catalog load &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app"
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./backend/app:/srv/backend/app
       - ./backend/alembic:/srv/backend/alembic
+      - ./backend/data:/srv/backend/data
     depends_on:
       db:
         condition: service_healthy

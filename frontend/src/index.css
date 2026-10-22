@@ -3,6 +3,13 @@
   --text: #1c1b19;
   --muted: #6b6862;
   --bg: #fbfaf7;
+  --surface: #ffffff;
+  --line: #e4e1da;
+  --accent: #2f5bd3;
+  --easy: #1f7a4d;
+  --struggled: #a46200;
+  --failed: #b3261e;
+  --overdue: #b3261e;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   color: var(--text);
@@ -14,19 +21,277 @@
     --text: #ecebe7;
     --muted: #a19d95;
     --bg: #161614;
+    --surface: #1f1f1c;
+    --line: #34332f;
+    --accent: #8aa8ff;
+    --easy: #5cc28f;
+    --struggled: #e0a33d;
+    --failed: #f2857d;
+    --overdue: #f2857d;
   }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
 }
 
+a {
+  color: var(--accent);
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 2rem 0 0.5rem;
+}
+
 .shell {
-  max-width: 40rem;
+  max-width: 44rem;
   margin: 0 auto;
-  padding: 3rem 1rem;
+  padding: 1.5rem 1rem 4rem;
 }
 
 .muted {
   color: var(--muted);
+}
+
+.error {
+  color: var(--failed);
+}
+
+.topbar {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.nav {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  padding-top: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+
+.brand {
+  font-weight: 700;
+  margin-right: auto;
+}
+
+.nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.nav a[aria-current='page'] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.page-head {
+  margin-bottom: 1.25rem;
+}
+
+.page-head p {
+  margin: 0.25rem 0 0;
+}
+
+.empty {
+  padding: 2rem 0;
+}
+
+.problem-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.problem-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.problem-title {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.problem-title:hover {
+  text-decoration: underline;
+}
+
+.problem-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.difficulty {
+  text-transform: capitalize;
+}
+
+.difficulty-easy {
+  color: var(--easy);
+}
+
+.difficulty-medium {
+  color: var(--struggled);
+}
+
+.difficulty-hard {
+  color: var(--failed);
+}
+
+.overdue,
+.status-due {
+  color: var(--overdue);
+  font-weight: 600;
+}
+
+.result-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.result-buttons {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.result-note {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.result-easy {
+  border-color: var(--easy);
+  color: var(--easy);
+}
+
+.result-struggled {
+  border-color: var(--struggled);
+  color: var(--struggled);
+}
+
+.result-failed {
+  border-color: var(--failed);
+  color: var(--failed);
+}
+
+.link-button {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+input,
+select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.4rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.filters input {
+  flex: 1 1 12rem;
+}
+
+.setting {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.setting > label {
+  font-weight: 600;
+}
+
+.setting p {
+  margin: 0.25rem 0 0.6rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.row input {
+  flex: 1 1 14rem;
+}
+
+.setting > .check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 400;
+}
+
+.sign-in {
+  max-width: 26rem;
+  margin: 4rem auto 0;
+}
+
+.sign-in form {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 30rem) {
+  .result-area {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .result-buttons button {
+    flex: 1;
+    padding: 0.6rem 0;
+  }
 }

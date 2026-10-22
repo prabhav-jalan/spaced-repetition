@@ -8,6 +8,8 @@ from functools import lru_cache
 DEFAULT_DATABASE_URL = "postgresql+psycopg://app:app@localhost:5432/spaced_repetition"
 DEFAULT_EMAIL_HOUR = 8
 ENVIRONMENTS = ("dev", "test", "production")
+DEV_SESSION_SECRET = "dev-only-session-secret-never-use-in-production"
+MIN_SESSION_SECRET_LENGTH = 32
 
 ENV_VARS = (
     "DATABASE_URL",
@@ -45,15 +47,16 @@ class Settings:
         def get(name: str, default: str = "") -> str:
             return source.get(name, "").strip() or default
 
+        env = _parse_env(get("ENV", "dev"))
         return cls(
             database_url=get("DATABASE_URL", DEFAULT_DATABASE_URL),
-            session_secret=get("SESSION_SECRET"),
+            session_secret=_parse_session_secret(get("SESSION_SECRET"), env),
             google_client_id=get("GOOGLE_CLIENT_ID"),
             google_client_secret=get("GOOGLE_CLIENT_SECRET"),
             email_api_key=get("EMAIL_API_KEY"),
             email_from=get("EMAIL_FROM"),
             app_url=get("APP_URL", "http://localhost:5173"),
-            env=_parse_env(get("ENV", "dev")),
+            env=env,
             email_hour=_parse_hour(get("EMAIL_HOUR", str(DEFAULT_EMAIL_HOUR))),
         )
 
@@ -61,6 +64,16 @@ class Settings:
 def _parse_env(raw: str) -> str:
     if raw not in ENVIRONMENTS:
         raise ValueError(f"ENV must be one of {', '.join(ENVIRONMENTS)}; got {raw!r}")
+    return raw
+
+
+def _parse_session_secret(raw: str, env: str) -> str:
+    if env != "production":
+        return raw or DEV_SESSION_SECRET
+    if len(raw) < MIN_SESSION_SECRET_LENGTH:
+        raise ValueError(
+            f"SESSION_SECRET must be at least {MIN_SESSION_SECRET_LENGTH} characters in production"
+        )
     return raw
 
 

@@ -8,13 +8,15 @@ import pytest
 import time_machine
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from app import catalog
 from app.config import get_settings
 from app.db import get_engine, get_sessionmaker
+from app.models import Problem
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
 
@@ -95,3 +97,21 @@ def db(migrated_engine: Engine) -> Iterator[Session]:
         finally:
             session.close()
             transaction.rollback()
+
+
+@pytest.fixture
+def committed_engine(migrated_engine: Engine) -> Iterator[Engine]:
+    yield migrated_engine
+    with migrated_engine.begin() as connection:
+        connection.execute(
+            text(
+                "TRUNCATE users, problems, user_problems, attempts, email_sends "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
+
+
+@pytest.fixture
+def problems(db: Session) -> dict[str, Problem]:
+    catalog.load(db, catalog.read_csv())
+    return {problem.slug: problem for problem in db.scalars(select(Problem))}

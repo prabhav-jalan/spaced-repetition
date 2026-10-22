@@ -1,5 +1,5 @@
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -72,3 +72,16 @@ def test_frozen_instant_gives_each_zone_its_own_local_date(frozen_clock):
 )
 def test_zone_database_has_every_zone_the_email_tests_use(zone):
     assert ZoneInfo(zone).key == zone
+
+
+def test_local_date_comes_from_the_users_zone():
+    instant = datetime(2026, 10, 20, 23, 30, tzinfo=UTC)
+
+    assert clock.local_date(instant, "Asia/Kolkata") == date(2026, 10, 21)
+    assert clock.local_date(instant, "America/New_York") == date(2026, 10, 20)
+    assert clock.local_date(instant, "Asia/Kathmandu") == date(2026, 10, 21)
+
+
+def test_local_date_refuses_a_naive_datetime():
+    with pytest.raises(ValueError, match="aware"):
+        clock.local_date(datetime(2026, 10, 20, 23, 30), "Asia/Kolkata")

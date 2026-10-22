@@ -8,7 +8,7 @@ ENV_EXAMPLE = Path(__file__).resolve().parents[2] / ".env.example"
 
 FULL_ENV = {
     "DATABASE_URL": "postgresql+psycopg://u:p@host:5432/db",
-    "SESSION_SECRET": "session-secret",
+    "SESSION_SECRET": "session-secret-0123456789-abcdefghij",
     "GOOGLE_CLIENT_ID": "client-id",
     "GOOGLE_CLIENT_SECRET": "client-secret",
     "EMAIL_API_KEY": "re_123",
@@ -23,7 +23,7 @@ def test_reads_every_variable_from_the_environment():
     settings = Settings.from_env(FULL_ENV)
 
     assert settings.database_url == "postgresql+psycopg://u:p@host:5432/db"
-    assert settings.session_secret == "session-secret"
+    assert settings.session_secret == "session-secret-0123456789-abcdefghij"
     assert settings.google_client_id == "client-id"
     assert settings.google_client_secret == "client-secret"
     assert settings.email_api_key == "re_123"
@@ -64,7 +64,7 @@ def test_rejects_an_unknown_env(raw):
 def test_secrets_stay_out_of_repr():
     shown = repr(Settings.from_env(FULL_ENV))
 
-    for secret in ("session-secret", "client-secret", "re_123", "u:p@"):
+    for secret in ("session-secret-0123", "client-secret", "re_123", "u:p@"):
         assert secret not in shown
 
 
@@ -82,3 +82,17 @@ def test_env_example_lists_exactly_the_settings_variables():
     }
 
     assert keys == set(ENV_VARS)
+
+
+@pytest.mark.parametrize("secret", ["", "too-short"])
+def test_production_needs_a_long_session_secret(secret):
+    with pytest.raises(ValueError, match="SESSION_SECRET"):
+        Settings.from_env(FULL_ENV | {"SESSION_SECRET": secret})
+
+
+def test_dev_and_test_fall_back_to_a_fixed_session_secret():
+    dev = Settings.from_env({}).session_secret
+    test = Settings.from_env({"ENV": "test"}).session_secret
+
+    assert dev == test
+    assert len(dev) >= 32
