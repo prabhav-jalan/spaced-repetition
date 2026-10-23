@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy>=2.0.30,<2.1",
     "alembic>=1.16",
     "psycopg[binary]>=3.2",
+    "resend>=2.0",
     "tzdata>=2024.1",
 ]
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -8,17 +9,33 @@ import pytest
 import time_machine
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import select, text
-from sqlalchemy.engine import Engine
+from sqlalchemy import create_engine, select, text
+from sqlalchemy.engine import URL, Engine, make_url
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import NullPool
 
 from app import catalog
-from app.config import get_settings
+from app.config import DEFAULT_DATABASE_URL, get_settings
 from app.db import get_engine, get_sessionmaker
 from app.models import Problem
 
 ALEMBIC_INI = Path(__file__).resolve().parents[1] / "alembic.ini"
+TEST_DATABASE_SUFFIX = "_test"
+
+
+def database_url_for_tests(url: str) -> str:
+    parsed = make_url(url)
+    if not (parsed.database or "").endswith(TEST_DATABASE_SUFFIX):
+        parsed = parsed.set(database=f"{parsed.database}{TEST_DATABASE_SUFFIX}")
+    return parsed.render_as_string(hide_password=False)
+
+
+# Tests commit and empty tables, so they get their own database next to the dev one
+# (spaced_repetition -> spaced_repetition_test) and never touch the data you use the app with.
+os.environ["DATABASE_URL"] = database_url_for_tests(
+    os.environ.get("DATABASE_URL", "").strip() or DEFAULT_DATABASE_URL
+)
 
 # A Tuesday at noon UTC: 08:00 in New York (EDT), 17:30 in Kolkata.
 FROZEN_AT = datetime(2026, 10, 20, 12, 0, tzinfo=UTC)
@@ -60,10 +77,43 @@ def fresh_settings() -> Iterator[None]:
     _clear_caches()
 
 
+def create_database(url: URL) -> None:
+    server = create_engine(
+        url.set(database="postgres"), isolation_level="AUTOCOMMIT", poolclass=NullPool
+    )
+    try:
+        with server.connect() as connection:
+            found = connection.scalar(
+                text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": url.database}
+            )
+            if not found:
+                name = connection.dialect.identifier_preparer.quote(url.database)
+                connection.execute(text(f"CREATE DATABASE {name}"))
+    finally:
+        server.dispose()
+
+
+def truncate_tables(engine: Engine) -> None:
+    database = engine.url.database or ""
+    if not database.endswith(TEST_DATABASE_SUFFIX):
+        raise RuntimeError(
+            f"Refusing to empty the tables in {database!r}: "
+            f"tests only empty databases whose names end in {TEST_DATABASE_SUFFIX!r}"
+        )
+    with engine.begin() as connection:
+        connection.execute(
+            text(
+                "TRUNCATE users, problems, user_problems, attempts, email_sends "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
+
+
 @pytest.fixture(scope="session")
 def db_engine() -> Engine:
     engine = get_engine()
     try:
+        create_database(engine.url)
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
     except OperationalError as exc:
@@ -102,13 +152,7 @@ def db(migrated_engine: Engine) -> Iterator[Session]:
 @pytest.fixture
 def committed_engine(migrated_engine: Engine) -> Iterator[Engine]:
     yield migrated_engine
-    with migrated_engine.begin() as connection:
-        connection.execute(
-            text(
-                "TRUNCATE users, problems, user_problems, attempts, email_sends "
-                "RESTART IDENTITY CASCADE"
-            )
-        )
+    truncate_tables(migrated_engine)
 
 
 @pytest.fixture

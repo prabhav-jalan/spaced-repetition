@@ -48,6 +48,18 @@ class Settings:
     def google_redirect_uri(self) -> str:
         return f"{self.app_url.rstrip('/')}/api/auth/google/callback"
 
+    def check_email(self) -> None:
+        missing = [
+            name
+            for name, value in (
+                ("EMAIL_API_KEY", self.email_api_key),
+                ("EMAIL_FROM", self.email_from),
+            )
+            if not value
+        ]
+        if missing:
+            raise ValueError(f"The email job needs {' and '.join(missing)}")
+
     def check_web(self) -> None:
         if not self.is_production:
             return

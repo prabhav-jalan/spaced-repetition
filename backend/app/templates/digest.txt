@@ -1,0 +1,8 @@
+$heading
+
+$problems
+
+Open today's reviews: $today_url
+
+You get this at $email_hour your time on days with reviews due.
+Turn off emails or change your time zone: $settings_url
