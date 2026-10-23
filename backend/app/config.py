@@ -40,6 +40,31 @@ class Settings:
     def is_production(self) -> bool:
         return self.env == "production"
 
+    @property
+    def google_configured(self) -> bool:
+        return bool(self.google_client_id and self.google_client_secret)
+
+    @property
+    def google_redirect_uri(self) -> str:
+        return f"{self.app_url.rstrip('/')}/api/auth/google/callback"
+
+    def check_web(self) -> None:
+        if not self.is_production:
+            return
+        problems = []
+        if len(self.session_secret) < MIN_SESSION_SECRET_LENGTH:
+            problems.append(
+                f"SESSION_SECRET must be at least {MIN_SESSION_SECRET_LENGTH} characters"
+            )
+        if not self.google_client_id:
+            problems.append("GOOGLE_CLIENT_ID must be set")
+        if not self.google_client_secret:
+            problems.append("GOOGLE_CLIENT_SECRET must be set")
+        if not self.app_url.startswith("https://"):
+            problems.append("APP_URL must start with https://")
+        if problems:
+            raise ValueError("In production, " + "; ".join(problems))
+
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> Settings:
         source = os.environ if environ is None else environ
@@ -68,13 +93,7 @@ def _parse_env(raw: str) -> str:
 
 
 def _parse_session_secret(raw: str, env: str) -> str:
-    if env != "production":
-        return raw or DEV_SESSION_SECRET
-    if len(raw) < MIN_SESSION_SECRET_LENGTH:
-        raise ValueError(
-            f"SESSION_SECRET must be at least {MIN_SESSION_SECRET_LENGTH} characters in production"
-        )
-    return raw
+    return raw if env == "production" else raw or DEV_SESSION_SECRET
 
 
 def _parse_hour(raw: str) -> int:

@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { browserTimeZone } from '../time.ts'
 import { request } from './client.ts'
-import type { CatalogProblem, LoggedAttempt, Me, MeChanges, Result, Today } from './types.ts'
+import type {
+  CatalogProblem,
+  LoggedAttempt,
+  Me,
+  MeChanges,
+  Providers,
+  Result,
+  Today,
+} from './types.ts'
 
 const keys = {
   me: ['me'],
@@ -11,6 +19,14 @@ const keys = {
 
 export function useMe() {
   return useQuery({ queryKey: keys.me, queryFn: () => request<Me>('GET', '/me') })
+}
+
+export function useProviders() {
+  return useQuery({
+    queryKey: ['auth', 'providers'],
+    queryFn: () => request<Providers>('GET', '/auth/providers'),
+    staleTime: Infinity,
+  })
 }
 
 export function useToday() {

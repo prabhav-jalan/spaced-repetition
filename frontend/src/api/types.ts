@@ -49,3 +49,8 @@ export interface LoggedAttempt {
 }
 
 export type MeChanges = Partial<Pick<Me, 'timezone' | 'email_enabled'>>
+
+export interface Providers {
+  google: boolean
+  dev: boolean
+}

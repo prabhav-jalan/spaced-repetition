@@ -1,14 +1,25 @@
+import logging
 import re
 from datetime import date
 from typing import Annotated, Literal
 
+import httpx2
+from authlib.integrations.starlette_client import OAuthError, StarletteOAuth2App
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
+from joserfc.errors import JoseError
 from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app import attempts, auth, catalog, clock, reviews, users
+from app.config import Settings
 from app.db import get_session
 from app.models import User
+
+logger = logging.getLogger(__name__)
+
+SIGN_IN_FAILURES = (OAuthError, JoseError, httpx2.HTTPError, ValueError)
 
 EMAIL_PATTERN = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 
@@ -108,6 +119,11 @@ class MeUpdate(BaseModel):
         return value
 
 
+class ProvidersOut(BaseModel):
+    google: bool
+    dev: bool
+
+
 class DevLoginIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -194,6 +210,70 @@ def get_problems(
         )
         for entry in catalog.list_problems(db, user, clock.now(), topic, q)
     ]
+
+
+def _settings(request: Request) -> Settings:
+    return request.app.state.settings
+
+
+def _google(request: Request) -> StarletteOAuth2App:
+    google = request.app.state.google
+    if google is None:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, "Google sign-in isn't configured on this server"
+        )
+    return google
+
+
+def _back_to_app(settings: Settings, outcome: str | None = None) -> RedirectResponse:
+    home = f"{settings.app_url.rstrip('/')}/"
+    url = home if outcome is None else f"{home}?signin={outcome}"
+    return RedirectResponse(url, status_code=status.HTTP_303_SEE_OTHER)
+
+
+def _save_google_user(
+    db: Session, profile: auth.GoogleProfile, timezone: str, take_over_dev_account: bool
+) -> User:
+    user = auth.google_user(db, profile, timezone, take_over_dev_account)
+    db.commit()
+    return user
+
+
+@router.get("/auth/providers")
+def get_providers(request: Request) -> ProvidersOut:
+    return ProvidersOut(
+        google=request.app.state.google is not None, dev=_settings(request).env == "dev"
+    )
+
+
+@router.get("/auth/google/login", include_in_schema=False)
+async def google_login(request: Request, timezone: str = "") -> Response:
+    google = _google(request)
+    valid = users.is_valid_time_zone(timezone)
+    request.session[auth.PENDING_TIME_ZONE] = timezone if valid else "UTC"
+    return await google.authorize_redirect(request, _settings(request).google_redirect_uri)
+
+
+@router.get("/auth/google/callback", include_in_schema=False)
+async def google_callback(request: Request, db: DbSession) -> RedirectResponse:
+    google, settings = _google(request), _settings(request)
+    try:
+        token = await google.authorize_access_token(request)
+    except SIGN_IN_FAILURES as error:
+        if isinstance(error, OAuthError) and error.error == "access_denied":
+            return _back_to_app(settings, "cancelled")
+        logger.warning("Google sign-in failed: %r", error)
+        return _back_to_app(settings, "failed")
+
+    profile = auth.google_profile(token.get("userinfo"))
+    if profile is None:
+        logger.warning("Google sign-in refused: no verified email in the ID token")
+        return _back_to_app(settings, "failed")
+
+    timezone = request.session.get(auth.PENDING_TIME_ZONE, "UTC")
+    user = await run_in_threadpool(_save_google_user, db, profile, timezone, settings.env == "dev")
+    auth.sign_in(request, user)
+    return _back_to_app(settings)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

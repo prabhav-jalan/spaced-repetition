@@ -284,6 +284,28 @@ select {
   margin-top: 1.5rem;
 }
 
+.sign-in .google {
+  display: block;
+  margin-top: 1.5rem;
+  padding: 0.65rem 1rem;
+  border-radius: 0.4rem;
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.sign-in .notice {
+  margin-top: 1.5rem;
+}
+
+.sign-in .dev {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
 @media (max-width: 30rem) {
   .result-area {
     align-items: stretch;

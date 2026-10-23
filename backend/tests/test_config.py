@@ -85,9 +85,20 @@ def test_env_example_lists_exactly_the_settings_variables():
 
 
 @pytest.mark.parametrize("secret", ["", "too-short"])
-def test_production_needs_a_long_session_secret(secret):
+def test_the_production_web_app_needs_a_long_session_secret(secret):
     with pytest.raises(ValueError, match="SESSION_SECRET"):
-        Settings.from_env(FULL_ENV | {"SESSION_SECRET": secret})
+        Settings.from_env(FULL_ENV | {"SESSION_SECRET": secret}).check_web()
+
+
+def test_a_complete_production_config_passes_the_web_check():
+    Settings.from_env(FULL_ENV).check_web()
+
+
+def test_the_email_job_can_load_production_settings_without_web_secrets():
+    settings = Settings.from_env({"ENV": "production", "EMAIL_API_KEY": "re_123"})
+
+    assert settings.is_production
+    assert not settings.google_configured
 
 
 def test_dev_and_test_fall_back_to_a_fixed_session_secret():

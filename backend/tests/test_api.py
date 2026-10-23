@@ -384,8 +384,16 @@ def test_a_session_for_a_deleted_user_is_rejected(client, db):
 
 
 def test_production_has_no_dev_login(db):
-    settings = Settings.from_env({"ENV": "production", "SESSION_SECRET": "s" * 32})
-    client = TestClient(create_app(settings))
+    settings = Settings.from_env(
+        {
+            "ENV": "production",
+            "SESSION_SECRET": "s" * 32,
+            "GOOGLE_CLIENT_ID": "client-id",
+            "GOOGLE_CLIENT_SECRET": "client-secret",
+            "APP_URL": "https://prep.prabhavjalan.com",
+        }
+    )
+    client = TestClient(create_app(settings), base_url="https://testserver")
 
     response = client.post("/api/dev/login", json={"email": "me@example.com", "timezone": "UTC"})
 
