@@ -84,6 +84,10 @@ export function SettingsPage({ me }: { me: Me }) {
           Sign out
         </button>
       </div>
+
+      <p className="muted">
+        <a href="/privacy.html">Privacy policy</a>, including how to delete your account
+      </p>
     </section>
   )
 }

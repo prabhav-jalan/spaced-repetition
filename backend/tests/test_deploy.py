@@ -156,3 +156,15 @@ def test_the_readme_shows_the_ci_badge():
     workflow = "https://github.com/prabhav-jalan/spaced-repetition/actions/workflows/ci.yml"
 
     assert f"[![CI]({workflow}/badge.svg)]({workflow})" in (ROOT / "README.md").read_text()
+
+
+def test_the_privacy_policy_google_requires_is_public_and_linked():
+    policy = (ROOT / "frontend" / "public" / "privacy.html").read_text()
+    pages = ROOT / "frontend" / "src" / "pages"
+
+    assert "<title>Privacy policy · Prep reviews</title>" in policy
+    assert "mailto:prabhavjalan12@gmail.com" in policy
+    for service in ["Google", "Render", "Resend"]:
+        assert service in policy
+    for page in ["SignInPage.tsx", "SettingsPage.tsx"]:
+        assert 'href="/privacy.html"' in (pages / page).read_text()

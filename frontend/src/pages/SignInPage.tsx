@@ -58,6 +58,10 @@ export function SignInPage() {
       {providers.isSuccess && !google && !dev && (
         <p className="muted notice">Sign-in isn't set up on this server yet.</p>
       )}
+
+      <p className="muted notice">
+        <a href="/privacy.html">Privacy policy</a>
+      </p>
     </section>
   )
 }

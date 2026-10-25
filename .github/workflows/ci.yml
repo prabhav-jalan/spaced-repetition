@@ -105,6 +105,7 @@ jobs:
           curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:10000/healthz
           curl -fsS http://localhost:10000/ | grep -q 'id="root"'
           curl -fsS http://localhost:10000/settings | grep -q 'id="root"'
+          curl -fsS http://localhost:10000/privacy.html | grep -q 'Privacy policy'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/me)" = 401
       - name: Run the email job as the cron job does
         run: >-
