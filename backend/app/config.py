@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 
 DEFAULT_DATABASE_URL = "postgresql+psycopg://app:app@localhost:5432/spaced_repetition"
+DRIVERLESS_SCHEMES = ("postgres://", "postgresql://")
 DEFAULT_EMAIL_HOUR = 8
 ENVIRONMENTS = ("dev", "test", "production")
 DEV_SESSION_SECRET = "dev-only-session-secret-never-use-in-production"
@@ -86,7 +87,7 @@ class Settings:
 
         env = _parse_env(get("ENV", "dev"))
         return cls(
-            database_url=get("DATABASE_URL", DEFAULT_DATABASE_URL),
+            database_url=_parse_database_url(get("DATABASE_URL", DEFAULT_DATABASE_URL)),
             session_secret=_parse_session_secret(get("SESSION_SECRET"), env),
             google_client_id=get("GOOGLE_CLIENT_ID"),
             google_client_secret=get("GOOGLE_CLIENT_SECRET"),
@@ -96,6 +97,13 @@ class Settings:
             env=env,
             email_hour=_parse_hour(get("EMAIL_HOUR", str(DEFAULT_EMAIL_HOUR))),
         )
+
+
+def _parse_database_url(raw: str) -> str:
+    for scheme in DRIVERLESS_SCHEMES:
+        if raw.startswith(scheme):
+            return "postgresql+psycopg://" + raw.removeprefix(scheme)
+    return raw
 
 
 def _parse_env(raw: str) -> str:

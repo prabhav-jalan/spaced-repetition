@@ -43,6 +43,20 @@ def test_defaults_suit_local_development():
     assert settings.database_url == DEFAULT_DATABASE_URL
 
 
+@pytest.mark.parametrize(
+    "given",
+    [
+        "postgres://u:p@dpg-abc-a:5432/db",
+        "postgresql://u:p@dpg-abc-a:5432/db",
+        "postgresql+psycopg://u:p@dpg-abc-a:5432/db",
+    ],
+)
+def test_render_database_urls_get_the_psycopg_driver(given):
+    settings = Settings.from_env({"DATABASE_URL": given})
+
+    assert settings.database_url == "postgresql+psycopg://u:p@dpg-abc-a:5432/db"
+
+
 @pytest.mark.parametrize("raw", ["", "  "])
 def test_blank_email_hour_means_the_default(raw):
     assert Settings.from_env({"EMAIL_HOUR": raw}).email_hour == 8

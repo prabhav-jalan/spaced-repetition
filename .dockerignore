@@ -8,5 +8,10 @@
 **/.venv
 **/.pytest_cache
 **/.ruff_cache
-frontend/node_modules
+**/*.egg-info
+**/node_modules
 frontend/dist
+backend/app/static
+.coverage
+htmlcov
+.DS_Store

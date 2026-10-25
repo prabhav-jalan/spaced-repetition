@@ -34,6 +34,8 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -66,3 +68,49 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
+
+  image:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: spaced_repetition
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d spaced_repetition"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://app:app@localhost:5432/spaced_repetition
+      APP_URL: https://prep.prabhavjalan.com
+      ENV: production
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build
+        run: docker build -t spaced-repetition .
+      - name: Start the web service as Render does
+        run: >-
+          docker run -d --name web --network host
+          -e PORT=10000 -e ENV -e APP_URL -e DATABASE_URL
+          -e SESSION_SECRET="$(openssl rand -hex 32)"
+          -e GOOGLE_CLIENT_ID=ci -e GOOGLE_CLIENT_SECRET=ci
+          spaced-repetition
+      - name: The site and the API answer
+        run: |
+          curl -fsS --retry 30 --retry-delay 2 --retry-all-errors http://localhost:10000/healthz
+          curl -fsS http://localhost:10000/ | grep -q 'id="root"'
+          curl -fsS http://localhost:10000/settings | grep -q 'id="root"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/me)" = 401
+      - name: Run the email job as the cron job does
+        run: >-
+          docker run --rm --network host -e ENV -e APP_URL -e DATABASE_URL
+          -e EMAIL_API_KEY=ci -e EMAIL_FROM=ci@example.com
+          spaced-repetition python -m app.digest run
+      - name: Web service logs
+        if: always()
+        run: docker logs web

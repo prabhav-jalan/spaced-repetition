@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: spaced-repetition
+    runtime: docker
+    plan: free # 0.5c-512mb ($7 a month) for the launch
+    region: virginia
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
+    domains:
+      - prep.prabhavjalan.com
+    envVars:
+      - fromGroup: spaced-repetition-config
+      - key: DATABASE_URL
+        fromDatabase:
+          name: spaced-repetition-db
+          property: connectionString
+      - key: SESSION_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+  - type: cron
+    name: spaced-repetition-digest
+    runtime: docker
+    region: virginia
+    schedule: "*/15 * * * *"
+    dockerCommand: python -m app.digest run
+    autoDeployTrigger: checksPass
+    envVars:
+      - fromGroup: spaced-repetition-config
+      - key: DATABASE_URL
+        fromDatabase:
+          name: spaced-repetition-db
+          property: connectionString
+      - key: EMAIL_API_KEY
+        sync: false
+
+databases:
+  - name: spaced-repetition-db
+    plan: free # expires 30 days after creation; upgrade or move it before then
+    region: virginia
+    postgresMajorVersion: "16"
+
+envVarGroups:
+  - name: spaced-repetition-config
+    envVars:
+      - key: ENV
+        value: production
+      - key: APP_URL
+        value: https://prep.prabhavjalan.com
+      - key: EMAIL_FROM
+        value: reviews@mail.prabhavjalan.com
